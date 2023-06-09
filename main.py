@@ -2,11 +2,8 @@ from fastapi import FastAPI
 import pandas as pd
 import io
 import psycopg2
+from functions.connectpgsql import connectpgsql
 
-host = "localhost"
-user = "postgres"
-password = "postgres"
-database = "postgres"
 
 app = FastAPI()
 
@@ -18,17 +15,10 @@ def move_historical_data():
         csv_path = "csv_files/hired_employees.csv"
         df = pd.read_csv(csv_path)
         
-        with open('sql/create_table.sql', 'r') as file:
-            create_table = file.read()
-
-
-
-        conn = psycopg2.connect(host = host,user = user,password = password,database = database)
-        cursor = conn.cursor()
-        cursor.execute("select version()" )
-        row = cursor.fetchone()
-        #return f"Se inserto {df.shape[0]} registros de forma exitosa !"
-        return row
+        #connectpgsql("drop_table.sql")
+        connectpgsql("create_table.sql")
+        
+        return f"Se inserto {df.shape[0]} registros de forma exitosa !"
     except Exception as e:
         return {"error": str(e)}
 
