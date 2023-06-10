@@ -60,24 +60,36 @@ def backup():
         print(f"Se hizo el backup de forma exitosa de la tabla {table['nombre']}!")
     return f"Se hizo el backup de forma exitosa de las tablas"
 
-@app.get("/restore")
-def restore():
-    tabla = "employees"
+@app.get("/restore/{tabla}")
+def restore(tabla):
+    #tabla = "jobs"
     try:
-        backup_filename = "avro_files/backup_employees.avro"
+        backup_filename = f"avro_files/backup_{tabla}.avro"
         with open(backup_filename, "rb") as avro_file:
             r = reader(avro_file)
             records = list(r)
-        connectpgsql(f"create_employees_backup.sql")
+        connectpgsql(f"create_{tabla}_backup.sql")
 
         lista = []
-        for record in records:
-            tupla = (record['id'], record['name'], record['datetime'], record['department_id'], record['job_id'])
-            lista.append(tupla)
+        
+        if tabla == "employees":
+            for record in records:
+                tupla = (record['id'], record['name'], record['datetime'], record['department_id'], record['job_id'])
+                lista.append(tupla)
 
-        insertmanypgsql("insert_employees_backup.sql",lista)
+        elif tabla == "departments":
+            for record in records:
+                tupla = (record['id'], record['department'])
+                lista.append(tupla)
 
-        print("Restauración de la tabla completada correctamente.")
+        elif tabla == "jobs":
+            for record in records:
+                tupla = (record['id'], record['job'])
+                lista.append(tupla)
+
+        insertmanypgsql(f"insert_{tabla}_backup.sql",lista)
+
+        print(f"Restauración de la tabla {tabla} completada correctamente.")
 
     except Exception as e:
         print(f"Error al leer el archivo Avro: {str(e)}")
@@ -89,7 +101,7 @@ def restore():
 def restore():
 
     try:
-        backup_filename = "avro_files/backup_employees.avro"
+        backup_filename = "avro_files/backup_jobs.avro"
         with open(backup_filename, "rb") as avro_file:
             r = reader(avro_file)
             for record in r:

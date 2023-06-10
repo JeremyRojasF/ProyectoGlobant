@@ -1,1 +1,1 @@
-select * from bronze.hired_employees
+select * from bronze.departments

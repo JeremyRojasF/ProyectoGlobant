@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS bronze.hired_employees;
+DROP TABLE IF EXISTS bronze.jobs;

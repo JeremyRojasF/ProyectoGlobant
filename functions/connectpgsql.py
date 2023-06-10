@@ -1,12 +1,13 @@
 import psycopg2
+from params import postgresql
 
 def connectpgsql(script: str):
 
     try:
-        host = "localhost"
-        user = "postgres"
-        password = "postgres"
-        database = "postgres"
+        host = postgresql['host']
+        user = postgresql['user']
+        password = postgresql['password']
+        database = postgresql['database']
 
         with open(f'sql/{script}', 'r') as file:
             query = file.read()
