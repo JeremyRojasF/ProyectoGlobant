@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS bronze.hired_employees;

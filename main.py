@@ -18,30 +18,27 @@ database = "postgres"
 @app.get("/move_historical_data")
 def move_historical_data():
 
+    for table in tables:
 
-    csv_path = "csv_files/employees.csv"
-    df = pd.read_csv(csv_path ,header=None)
-    df_nulos = df[df.isnull().any(axis=1)]
-    df_valido = df.dropna()
+        csv_path = f"csv_files/{table['nombre']}.csv"
+        df = pd.read_csv(csv_path ,header=None)
+        df_nulos = df[df.isnull().any(axis=1)]
+        df_valido = df.dropna()
 
-    df_valido[1] = df_valido[1].astype(str)
-    df_valido[2] = df_valido[2].astype(str)
-    df_valido[3] = df_valido[3].astype(int)
-    df_valido[4] = df_valido[4].astype(int)
-
-    connectpgsql("drop_employees.sql")
-    connectpgsql("create_employees.sql")
+        #connectpgsql(f"drop_{table['nombre']}.sql")
+        connectpgsql(f"create_{table['nombre']}.sql")
 
 
-    for start in range(0,df_valido.shape[0], bach_size):
-        
-        batch_df = df_valido.iloc[start:start+bach_size]
-        values = [tuple(row) for row in batch_df.values]
+        for start in range(0,df_valido.shape[0], bach_size):
+            
+            batch_df = df_valido.iloc[start:start+bach_size]
+            values = [tuple(row) for row in batch_df.values]
 
-        insertmanypgsql("insert_employees.sql",values)
+            insertmanypgsql(f"insert_{table['nombre']}.sql",values)
 
-    print(df_nulos.head())
-    return f"Se inserto {df.shape[0]} registros de forma exitosa !"
+        print(df.head())
+        print(f"Se inserto correctamente en la tabla {table['nombre']}")
+    return f"Se inserto de forma exitosa !"
 
 @app.get("/backup")
 def backup():
