@@ -14,3 +14,15 @@ tables = [
         'nombre': 'jobs'
     },
 ]
+
+postgresql = {
+    'host': 'localhost',
+    'user': 'postgres',
+    'password': 'postgres',
+    'database': 'postgres',
+    # Agrega más parámetros según sea necesario
+}
+
+params = {
+    'bach_size': 1000
+}

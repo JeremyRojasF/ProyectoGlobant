@@ -5,15 +5,17 @@ import psycopg2
 from functions.connectpgsql import connectpgsql
 from functions.insertmanypgsql import insertmanypgsql
 from params import tables
+from params import postgresql
+from params import params
 
-bach_size = 1000
+bach_size = params['bach_size']
 
 app = FastAPI()
 
-host = "localhost"
-user = "postgres"
-password = "postgres"
-database = "postgres"
+host = postgresql['host']
+user = postgresql['user']
+password = postgresql['password']
+database = postgresql['database']
 
 @app.get("/move_historical_data")
 def move_historical_data():
@@ -36,7 +38,8 @@ def move_historical_data():
 
             insertmanypgsql(f"insert_{table['nombre']}.sql",values)
 
-        print(df.head())
+        #print(df.head())
+        
         print(f"Se inserto correctamente en la tabla {table['nombre']}")
     return f"Se inserto de forma exitosa !"
 
