@@ -88,6 +88,28 @@ def backup():
 
 @app.get("/restore")
 def restore():
+    
+    try:
+        backup_filename = "avro_files/backup_employees.avro"
+        with open(backup_filename, "rb") as avro_file:
+            r = reader(avro_file)
+            records = list(r)
+        connectpgsql(f"create_employees_backup.sql")
+
+        conn = psycopg2.connect(host=host, user=user, password=password, database=database)
+        cur = conn.cursor()
+
+        for record in records:
+            insert_query = "INSERT INTO bronze.hired_employees_backup (id, name, datetime, department_id, job_id) VALUES (%s, %s, %s, %s, %s)"
+            cur.execute(insert_query, (record["id"], record["name"], record["datetime"], record["department_id"], record["job_id"]))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("Restauración de la tabla completada correctamente.")
+
+    except Exception as e:
+        print(f"Error al leer el archivo Avro: {str(e)}")
     return "Se restauro las tablas de forma exitosa !"
 
 
