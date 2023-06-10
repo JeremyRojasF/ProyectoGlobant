@@ -4,6 +4,7 @@ import io
 import psycopg2
 from functions.connectpgsql import connectpgsql
 from functions.insertmanypgsql import insertmanypgsql
+from functions.table_to_avro import table_to_avro
 from params import tables
 from params import postgresql
 from params import params
@@ -40,51 +41,24 @@ def move_historical_data():
 
             insertmanypgsql(f"insert_{table['nombre']}.sql",values)
 
-        #print(df.head())
+            print(values)
         
         print(f"Se inserto correctamente los datos en la tabla {table['nombre']}")
     return f"Se inserto de forma exitosa !"
 
-@app.get("/backup")
+@app.get("/backup") 
 def backup():
-    try:
-        backup_filename = f"avro_files/backup_employees.avro"
-
-        query = " select * from bronze.hired_employees where id <= 10"
-
-        conn = psycopg2.connect(host = host,user = user,password = password,database = database)
-        cur= conn.cursor()
-        cur.execute(query)
-        rows = cur.fetchall()
-        records = []
-        for row in rows:
-            record = {
-                "id": row[0],
-                "name": row[1],
-                "datetime": row[2],
-                "department_id": row[3],
-                "job_id": row[4]
-            }
-            records.append(record)
-        schema = {
-                    "type": "record",
-                    "name": "bronze.hired_employees",
-                    "fields": [
-                        {"name": "id", "type": "int"},
-                        {"name": "name", "type": "string"},
-                        {"name": "datetime", "type": "string"},
-                        {"name": "department_id", "type": "int"},
-                        {"name": "job_id", "type": "int"}
-                    ]
-                }
-        with open(backup_filename, "wb") as avro_file:
-            writer(avro_file, schema , records=records)
-        print(records)
-
-    except Exception as e:
-        return {"error": str(e)} 
     
-    return f"Se hizo el backup de forma exitosa en {backup_filename}!" 
+    for table in tables:
+
+        backup_filename = f"avro_files/backup_{table['nombre']}.avro"
+        table_postgre = f"{table['nombre']}"
+        query = f"select_{table['nombre']}.sql"
+
+        table_to_avro(query,table_postgre,backup_filename)
+
+        print(f"Se hizo el backup de forma exitosa de la tabla {table['nombre']}!")
+    return f"Se hizo el backup de forma exitosa de las tablas"
 
 @app.get("/restore")
 def restore():
@@ -99,9 +73,13 @@ def restore():
         conn = psycopg2.connect(host=host, user=user, password=password, database=database)
         cur = conn.cursor()
 
+        lista = []
         for record in records:
-            insert_query = "INSERT INTO bronze.hired_employees_backup (id, name, datetime, department_id, job_id) VALUES (%s, %s, %s, %s, %s)"
-            cur.execute(insert_query, (record["id"], record["name"], record["datetime"], record["department_id"], record["job_id"]))
+            r = (record['id'], record['name'], record['datetime'], record['department_id'], record['job_id'])
+            lista.append(r)
+
+        insert_query = "INSERT INTO bronze.hired_employees_backup (id, name, datetime, department_id, job_id) VALUES (%s, %s, %s, %s, %s)"
+        cur.executemany(insert_query, lista)
 
         conn.commit()
         cur.close()
@@ -113,6 +91,7 @@ def restore():
     return "Se restauro las tablas de forma exitosa !"
 
 
+#App de prueba para revisar si los datos fueron exportados correctamente
 @app.get("/leeravro")
 def restore():
 

@@ -1,0 +1,1 @@
+select * from bronze.hired_employees
