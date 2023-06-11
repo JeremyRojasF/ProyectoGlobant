@@ -10,6 +10,7 @@ from params import postgresql
 from params import params
 from fastavro import writer, reader
 import datetime
+import csv
 
 bach_size = params['bach_size']
 
@@ -111,3 +112,82 @@ def restore():
         print(f"Error al leer el archivo Avro: {str(e)}")
     
     return "Se leyo el archivo avro de forma exitosa !"
+
+@app.get("/employees_by_dep_job")
+def restore():
+
+    try:
+        conn = psycopg2.connect(host=host, user=user, password=password, database=database)
+        cur = conn.cursor()
+
+        select_query = """
+            select b.department,c.job,
+            count(CASE WHEN DATE_TRUNC('quarter', a.datetime::date) = DATE_TRUNC('quarter', '2021-01-01'::date) THEN 1 ELSE 0 END) AS Q1,
+            count(CASE WHEN DATE_TRUNC('quarter', a.datetime::date) = DATE_TRUNC('quarter', '2021-04-01'::date) THEN 1 ELSE 0 END) AS Q2,
+            count(CASE WHEN DATE_TRUNC('quarter', a.datetime::date) = DATE_TRUNC('quarter', '2021-07-01'::date) THEN 1 ELSE 0 END) AS Q3,
+            count(CASE WHEN DATE_TRUNC('quarter', a.datetime::date) = DATE_TRUNC('quarter', '2021-10-01'::date) THEN 1 ELSE 0 END) AS Q4
+
+            from bronze.hired_employees a
+            left join bronze.departments b on a.department_id = b.id
+            left join bronze.jobs c on a.job_id = c.id
+            group by 1,2 order by 1,2
+        """
+        cur.execute(select_query)
+        rows = cur.fetchall()
+
+        headers = [desc[0] for desc in cur.description]
+
+        with open('csv_files/employees_by_dep_job.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            writer.writerow(headers)
+            writer.writerows(rows)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"Error al ejecutar la consulta: {str(e)}")
+
+    return "Reporte exportado en csv realizado correctamente !"
+
+
+@app.get("/employees_by_department")
+def restore():
+
+    try:
+        conn = psycopg2.connect(host=host, user=user, password=password, database=database)
+        cur = conn.cursor()
+
+        select_query = """
+            select b.id, b.department, count(1) q
+                from bronze.hired_employees a
+            left join bronze.departments b on a.department_id = b.id
+            left join bronze.jobs c on a.job_id = c.id
+            group by 1,2
+                having count(1) >= (select avg(a.q)
+                from (
+            select department_id, count(1) q from bronze.hired_employees a where DATE_TRUNC('year', a.datetime::date) = DATE_TRUNC('year', '2021-01-01'::date)
+            group by 1) a )
+            order by count(1) desc,1
+        """
+        cur.execute(select_query)
+        rows = cur.fetchall()
+
+        headers = [desc[0] for desc in cur.description]
+
+        with open('csv_files/employees_by_department.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            writer.writerow(headers)
+            writer.writerows(rows)
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"Error al ejecutar la consulta: {str(e)}")
+
+    return "Reporte exportado en csv realizado correctamente !"
